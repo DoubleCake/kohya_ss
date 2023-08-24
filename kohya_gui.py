@@ -6,10 +6,14 @@ from finetune_gui import finetune_tab
 from textual_inversion_gui import ti_tab
 from library.utilities import utilities_tab
 from lora_gui import lora_tab
+
+from remote_gui import remote_tab
 from library.class_lora_tab import LoRATools
 
 import os
 from library.custom_logging import setup_logging
+import asyncio
+
 
 # Set up logging
 log = setup_logging()
@@ -34,6 +38,8 @@ def UI(**kwargs):
         with open(os.path.join('./README.md'), 'r', encoding='utf8') as file:
             README = file.read()
 
+
+
     interface = gr.Blocks(
         css=css, title=f'Kohya_ss GUI {release}', theme=gr.themes.Default()
     )
@@ -47,6 +53,9 @@ def UI(**kwargs):
                 logging_dir_input,
             ) = dreambooth_tab(headless=headless)
         with gr.Tab('LoRA'):
+            (
+                
+            )
             lora_tab(headless=headless)
         with gr.Tab('Textual Inversion'):
             ti_tab(headless=headless)
@@ -63,10 +72,14 @@ def UI(**kwargs):
             )
             with gr.Tab('LoRA'):
                 _ = LoRATools(headless=headless)
+
         with gr.Tab('About'):
             gr.Markdown(f'kohya_ss GUI release {release}')
             with gr.Tab('README'):
                 gr.Markdown(README)
+
+        with gr.Tab("Remote Foder List"):
+            remote_tab()
 
         htmlStr = f"""
         <html>
@@ -100,10 +113,15 @@ def UI(**kwargs):
 if __name__ == '__main__':
     # torch.cuda.set_per_process_memory_fraction(0.48)
     parser = argparse.ArgumentParser()
+    # parser.add_argument(
+    #     '--listen',
+    #     type=str,
+    #     default='127.0.0.1',
+    #     help='IP to listen on for connections to Gradio',
+    # )
     parser.add_argument(
         '--listen',
-        type=str,
-        default='127.0.0.1',
+        action='store_true',
         help='IP to listen on for connections to Gradio',
     )
     parser.add_argument(
@@ -136,6 +154,18 @@ if __name__ == '__main__':
         inbrowser=args.inbrowser,
         server_port=args.server_port,
         share=args.share,
-        listen=args.listen,
+        listen="0.0.0.0" if args.listen else "127.0.0.1",
         headless=args.headless,
     )
+    
+    loop = asyncio.get_event_loop()
+    task = loop.create_task(    UI(
+        username=args.username,
+        password=args.password,
+        inbrowser=args.inbrowser,
+        server_port=args.server_port,
+        share=args.share,
+        listen="0.0.0.0" if args.listen else "127.0.0.1",
+        headless=args.headless,
+    ))
+    loop.run_until_complete(task)

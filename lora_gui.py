@@ -26,14 +26,18 @@ from library.common_gui import (
     verify_image_folder_pattern,
     SaveConfigFile,
     save_to_file,
-    check_duplicate_filenames
+    check_duplicate_filenames,
+  
 )
 from library.class_configuration_file import ConfigurationFile
 from library.class_source_model import SourceModel
+from library.class_source_model_remote import SourceModelRemote
 from library.class_basic_training import BasicTraining
 from library.class_advanced_training import AdvancedTraining
 from library.class_sdxl_parameters import SDXLParameters
 from library.class_folders import Folders
+from library.class_remote_folders import RemoteFolders
+
 from library.class_command_executor import CommandExecutor
 from library.tensorboard_gui import (
     gradio_tensorboard,
@@ -45,6 +49,8 @@ from library.class_sample_images import SampleImages, run_cmd_sample
 from library.class_lora_tab import LoRATools
 
 from library.custom_logging import setup_logging
+from remote_gui import RemoteTab
+
 
 # Set up logging
 log = setup_logging()
@@ -486,6 +492,7 @@ def train_model(
     min_timestep,
     max_timestep,
 ):
+    
     # Get list of function parameters and values
     parameters = list(locals().items())
     global command_running
@@ -994,36 +1001,87 @@ def train_model(
         #     )
 
 
+
+
+
+
+def vis_folders(button,local_folder,remote_folder):
+    print(" local_folder? ")
+    return(
+        local_folder.update(visible= button.local_folder),
+        remote_folder.update(visible=False)
+
+    )
+
 def lora_tab(
     train_data_dir_input=gr.Textbox(),
     reg_data_dir_input=gr.Textbox(),
     output_dir_input=gr.Textbox(),
     logging_dir_input=gr.Textbox(),
     headless=False,
+    local_addr=True,
+
 ):
     dummy_db_true = gr.Label(value=True, visible=False)
     dummy_db_false = gr.Label(value=False, visible=False)
     dummy_headless = gr.Label(value=headless, visible=False)
 
+    remote_Folder= RemoteTab()
+    remote_Folders=RemoteFolders()
     with gr.Tab('Training'):
         gr.Markdown(
             'Train a custom model using kohya train network LoRA python code...'
         )
-        
-        # Setup Configuration Files Gradio
-        config = ConfigurationFile(headless)
+        with gr.Row():
+            check_remot_btn=remote_Folder.remote_folder()
 
-        source_model = SourceModel(
-            save_model_as_choices=[
-                'ckpt',
-                'safetensors',
-            ],
-            headless=headless,
+
+
+        config = ConfigurationFile(headless)
+        with gr.Tab('Source model'):
+            with gr.Column(visible=True) as source_model_local_gp:
+                source_model = SourceModel(
+                    save_model_as_choices=[
+                        'ckpt',
+                        'safetensors',
+                    ],
+                    headless=headless,
+                )
+            with gr.Column(visible=True) as  source_model_remote_gp:
+                source_model_remote = SourceModelRemote(            
+                    save_model_as_choices=[
+                        'ckpt',
+                        'safetensors',
+                    ],
+                    headless=headless,
+                )
+        
+        with gr.Tab('Folders',visible=remote_Folder.localFolder):
+            with gr.Column(scale=4,visible=False) as localFolderCol:
+                folders = Folders(headless=headless)
+
+            with gr.Column(scale=4,visible=False) as remoteFodlerCol:
+                folders_remote = remote_Folders.remoteFolderUI()
+       
+        def change_local_remote_folders(request:gr.Request):
+            if(request.client.host !="127.0.0.1"):
+                return {localFolderCol: gr.update(visible=False),
+                        remoteFodlerCol: gr.update(visible=True),
+                        source_model_local_gp:gr.update(visible=False),
+                        source_model_remote_gp:gr.update(visible=True),
+                        }
+            else:    
+                return {localFolderCol: gr.update(visible=True),
+                        remoteFodlerCol: gr.update(visible=False),
+                        source_model_local_gp:gr.update(visible=True),
+                        source_model_remote_gp:gr.update(visible=False),}
+
+        check_remot_btn.click(
+            change_local_remote_folders,
+            outputs=[localFolderCol, remoteFodlerCol,source_model_local_gp,source_model_remote_gp,],
+
         )
 
-        with gr.Tab('Folders'):
-            folders = Folders(headless=headless)
-            
         with gr.Tab('Parameters'):
             def list_presets(path):
                 json_files = []
@@ -1639,7 +1697,7 @@ def UI(**kwargs):
                     css += file.read() + '\n'
 
             interface = gr.Blocks(
-                css=css, title='Kohya_ss GUI', theme=gr.themes.Default()
+                css=css, title='Kohya_ss GUI', theme=gr.themes.Default(),
             )
 
             with interface:
@@ -1680,6 +1738,7 @@ def UI(**kwargs):
                 launch_kwargs['share'] = share
             log.info(launch_kwargs)
             interface.launch(**launch_kwargs)
+            
     except KeyboardInterrupt:
         # Code to execute when Ctrl+C is pressed
         print("You pressed Ctrl+C!")
@@ -1688,12 +1747,20 @@ def UI(**kwargs):
 if __name__ == '__main__':
     # torch.cuda.set_per_process_memory_fraction(0.48)
     parser = argparse.ArgumentParser()
+
+    # parser.add_argument(
+    #     '--listen',
+    #     type=str,
+    #     default='127.0.0.1',
+    #     help='IP to listen on for connections to Gradio',
+    # )
     parser.add_argument(
         '--listen',
-        type=str,
-        default='127.0.0.1',
+        action='store_true',
         help='IP to listen on for connections to Gradio',
     )
+
+
     parser.add_argument(
         '--username', type=str, default='', help='Username for authentication'
     )
@@ -1724,6 +1791,6 @@ if __name__ == '__main__':
         inbrowser=args.inbrowser,
         server_port=args.server_port,
         share=args.share,
-        listen=args.listen,
+        listen= "0.0.0.0" if args.listen else "127.0.0.1",
         headless=args.headless,
     )

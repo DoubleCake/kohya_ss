@@ -208,6 +208,7 @@ def get_any_file_path(file_path=''):
 
         initial_dir, initial_file = get_dir_and_file(file_path)
 
+        #基于TK的方式，调用了本地的文件浏览器，然后将路径返回
         root = Tk()
         root.wm_attributes('-topmost', 1)
         root.withdraw()
@@ -230,7 +231,8 @@ def remove_doublequote(file_path):
     return file_path
 
 
-def get_folder_path(folder_path=''):
+
+def get_folder_path(request: gr.Request,folder_path=''):
     if (
         not any(var in os.environ for var in ENV_EXCLUSION)
         and sys.platform != 'darwin'
@@ -239,16 +241,55 @@ def get_folder_path(folder_path=''):
 
         initial_dir, initial_file = get_dir_and_file(folder_path)
 
-        root = Tk()
-        root.wm_attributes('-topmost', 1)
-        root.withdraw()
-        folder_path = filedialog.askdirectory(initialdir=initial_dir)
-        root.destroy()
+    # if(request.client.host !="127.0.0.1"):
+    #     #打开隐藏的上传空间，用户将图片资源进行上传，然后
+    #     pass
 
-        if folder_path == '':
-            folder_path = current_folder_path
+    # else:
+    root = Tk()
+    root.wm_attributes('-topmost', 1)
+    root.withdraw()
+    folder_path = filedialog.askdirectory(initialdir=initial_dir)
+    root.destroy()
+
+    if folder_path == '':
+        folder_path = current_folder_path
+
+
+
 
     return folder_path
+
+def get_folder_path_remote(files): 
+    print(f"local folder:{os.path.abspath ('.')}")
+    remote_dtpath="./dataset/remote_datasets"
+    #每次上传，都会检测当前文件夹内的名字，如果
+    tmpFolder="tmptraindata"
+    folders = os.listdir(remote_dtpath) 
+    endnum=0
+    for folder in folders:
+        if tmpFolder in folder:
+            endnum+=1
+    #检测前一个文件夹是否为空，如果为空，就用空的，不为空就序号加+
+    tmpFolder= os.path.join(remote_dtpath,f"tmptraindata{endnum:0>4}")
+    if(endnum !=0 ):
+        if len(os.listdir(tmpFolder))>0:
+            tmpFolder=os.path.join(remote_dtpath,f"tmptraindata{endnum+1:0>4}")
+    if not os.path.exists(tmpFolder):
+        os.mkdir(tmpFolder)
+
+    
+    new_files=[]
+    for file in files:
+        print(file.name)
+        im_name= os.path.split(file.name)[-1]
+        new_path=os.path.join(tmpFolder,im_name)
+        new_files .append(new_path)
+        shutil.move(file.name,new_path)
+
+    return new_files
+        
+
 
 
 def get_saveasfile_path(
