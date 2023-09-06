@@ -1,0 +1,19 @@
+基于脚本训练的常用方式：
+
+1、根据训练的是 lora 还是 db模型，从之前配置的脚本或者选择模板脚本，修改对应的参数即可。
+
+脚本模板：
+      1train_db_demo.ps1
+      1train_lora_demo.ps1
+
+2、在 BatchTrainFolder创建 子文件夹，将编辑好的 训练脚本，放置于子文件夹中即可。
+
+3、 修改 batch_train_byfolder.ps1 中的第一行参数，指定到之前放置了数个训练脚本的文件夹路径
+
+
+开始训练：
+
+     双击运行 batch_train_byfolder.ps1
+
+或者  
+    右键该文件->打开方式->windows powershell
