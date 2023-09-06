@@ -3214,7 +3214,7 @@ def read_config_from_file(args: argparse.Namespace, parser: argparse.ArgumentPar
     args = parser.parse_args(namespace=config_args)
     args.config_file = os.path.splitext(args.config_file)[0]
     print(args.config_file)
-
+ 
     return args
 
 
@@ -3643,12 +3643,12 @@ def prepare_dataset_args(args: argparse.Namespace, support_metadata: bool):
 
 
 def load_tokenizer(args: argparse.Namespace):
-    print("prepare tokenizer")
     original_path = V2_STABLE_DIFFUSION_PATH if args.v2 else TOKENIZER_PATH
-
     tokenizer: CLIPTokenizer = None
     if args.tokenizer_cache_dir:
         local_tokenizer_path = os.path.join(args.tokenizer_cache_dir, original_path.replace("/", "_"))
+        print(f"load tokenizer from cache: {local_tokenizer_path}")
+
         if os.path.exists(local_tokenizer_path):
             print(f"load tokenizer from cache: {local_tokenizer_path}")
             tokenizer = CLIPTokenizer.from_pretrained(local_tokenizer_path)  # same for v1 and v2

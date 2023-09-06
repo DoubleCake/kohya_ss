@@ -48,3 +48,4 @@ presets/*/user_presets/*
 
 sd-models/*
 dataset/*
+huggingface/*
